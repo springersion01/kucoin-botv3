@@ -7,8 +7,8 @@ app = FastAPI()
 class TradeSignal(BaseModel):
     symbol: str
     side: str
-    qty: str  # Can be "ALL" for exit or float for buy
-    action: str = "entry"  # Optional, default to entry
+    qty: str  # must be a string like "10" or "ALL"
+    action: str = "entry"
 
 @app.post("/trade")
 async def trade(signal: TradeSignal):
