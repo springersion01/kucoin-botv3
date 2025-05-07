@@ -7,11 +7,12 @@ app = FastAPI()
 class TradeSignal(BaseModel):
     symbol: str
     side: str
-    qty: float
+    qty: str  # Can be "ALL" for exit or float for buy
+    action: str = "entry"  # Optional, default to entry
 
 @app.post("/trade")
 async def trade(signal: TradeSignal):
-    print("Webhook received:", signal.dict())  # ✅ THIS LINE helps confirm webhook is received
+    print("Webhook received:", signal.dict())
 
     try:
         now = str(int(time.time() * 1000))
@@ -19,9 +20,14 @@ async def trade(signal: TradeSignal):
             "clientOid": str(int(time.time() * 1000)),
             "side": signal.side,
             "symbol": signal.symbol,
-            "type": "market",
-            "funds": str(signal.qty)
+            "type": "market"
         }
+
+        # Handle entry (buy with funds) vs exit (sell all)
+        if signal.action == "exit" and signal.qty == "ALL":
+            order["size"] = "100"  # TODO: replace with actual position size if needed
+        else:
+            order["funds"] = str(signal.qty)
 
         json_body = str(order).replace("'", '"')
 
@@ -29,7 +35,6 @@ async def trade(signal: TradeSignal):
         signature = base64.b64encode(
             hmac.new(os.getenv("KUCOIN_API_SECRET").encode(), str_to_sign.encode(), hashlib.sha256).digest()
         )
-
         passphrase = base64.b64encode(
             hmac.new(os.getenv("KUCOIN_API_SECRET").encode(), os.getenv("KUCOIN_PASSPHRASE").encode(), hashlib.sha256).digest()
         )
@@ -47,7 +52,7 @@ async def trade(signal: TradeSignal):
         print("KuCoin response:", response.json())
 
         return {"status": "sent", "details": response.json()}
-    
+
     except Exception as e:
         print("Error:", str(e))
         return {"status": "error", "message": str(e)}
