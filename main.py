@@ -20,7 +20,7 @@ async def trade(signal: TradeSignal):
             "side": signal.side,
             "symbol": signal.symbol,
             "type": "market",
-            "size": str(signal.qty)
+            "funds": str(signal.qty)
         }
 
         json_body = str(order).replace("'", '"')
